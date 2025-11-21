@@ -8,7 +8,6 @@ A Spring Boot-based REST API service for managing high-value payment requests wi
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
 - [Setup Instructions](#setup-instructions)
-- [How to Run](#how-to-run)
 - [Architecture](#architecture)
 - [API Documentation](#api-documentation)
 - [Sample Requests/Responses](#sample-requestsresponses)
@@ -147,87 +146,61 @@ payment-service/
 
 ### Prerequisites
 
-- Java 21 or higher
-- Maven 3.9 or higher
-- MongoDB (local or Atlas)
-- Docker & Docker Compose (optional, for containerized setup)
+- Docker & Docker Compose
 
-### Local Setup
+### Quick Start
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:Drt36/payment-service.git
    cd payment-service
    ```
 
-2. **Configure application properties**
+2. **Copy environment variables**
    ```bash
-   # Copy the example configuration
-   cp src/main/resources/application.example.yml src/main/resources/application.yml
-   
-   # Edit application.yml with your MongoDB connection string and encryption secret
-   # Generate encryption secret: openssl rand -base64 32
-   ```
-
-3. **Configure environment variables (optional)**
-   ```bash
-   # Copy the example environment file
    cp .env.example .env
-   
-   # Edit .env with your actual values
    ```
 
-4. **Build the project**
+3. **Copy application configuration**
    ```bash
-   mvn clean install
+   cp src/main/resources/application.example.yml src/main/resources/application.yml
    ```
 
-5. **Run the application**
+4. **Start the services**
    ```bash
-   mvn spring-boot:run
+   docker compose up -d
    ```
 
-The service will start on `http://localhost:8080`
+5. **Check logs**
+   ```bash
+   docker compose logs -f payment-service
+   ```
 
-## How to Run
+6. **Verify the application is running**
+   - **Health Check**: http://localhost:8080/health
+   - **Swagger UI**: http://localhost:8080/swagger-ui.html
+   - **API Docs**: http://localhost:8080/api-docs
 
-### Using Maven
+### Useful Docker Compose Commands
 
 ```bash
-# Run the application
-mvn spring-boot:run
-
-# Run with specific profile
-mvn spring-boot:run -Dspring-boot.run.profiles=prod
-```
-
-### Using Docker Compose
-
-```bash
-# Build and start all services (app + MongoDB)
-docker-compose up -d
-
 # View logs
-docker-compose logs -f payment-service
+docker compose logs -f payment-service
+
+# View MongoDB logs
+docker compose logs -f mongodb
 
 # Stop services
-docker-compose down
+docker compose down
 
-# Stop and remove volumes
-docker-compose down -v
-```
+# Stop and remove volumes (clears database data)
+docker compose down -v
 
-### Using Docker (standalone)
+# Rebuild and restart
+docker compose up -d --build
 
-```bash
-# Build the image
-docker build -t payment-service:latest .
-
-# Run the container
-docker run -p 8080:8080 \
-  -e SPRING_DATA_MONGODB_URI=mongodb://host.docker.internal:27017/payment_db \
-  -e APP_ENCRYPTION_SECRET=your-secret-key \
-  payment-service:latest
+# Restart a specific service
+docker compose restart payment-service
 ```
 
 ## Architecture
@@ -297,8 +270,8 @@ Once the application is running, access the API documentation:
 ### 1. Health Check
 
 **Request:**
-```http
-GET /health
+```bash
+curl http://localhost:8080/health
 ```
 
 **Response:**
@@ -316,19 +289,18 @@ GET /health
 ### 2. Create Exchange Configuration
 
 **Request:**
-```http
-POST /api/v1/exchange-configs
-Content-Type: application/json
-
-{
-  "sourceCurrency": "USD",
-  "targetCurrency": "EUR",
-  "minAmount": 100.00,
-  "maxAmount": 100000.00,
-  "fxRate": 0.95,
-  "feeFlat": 10.00,
-  "feePercent": 0.04
-}
+```bash
+curl -X POST http://localhost:8080/api/v1/exchange-configs \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "minAmount": 100.00,
+    "maxAmount": 100000.00,
+    "fxRate": 0.95,
+    "feeFlat": 10.00,
+    "feePercent": 0.04
+  }'
 ```
 
 **Response:**
@@ -354,39 +326,38 @@ Content-Type: application/json
 ### 3. Create Payment
 
 **Request:**
-```http
-POST /api/v1/payments
-Content-Type: application/json
-X-Admin-Id: admin-123
-
-{
-  "idempotencyKey": "unique-payment-key-12345",
-  "sender": {
-    "name": "John Doe",
-    "address": "123 Main St, New York, NY 10001",
-    "fundingAccount": {
-      "accountNumber": "1234567890",
-      "bankCode": "BANK001",
-      "routingNumber": "987654321"
-    }
-  },
-  "receiver": {
-    "name": "Jane Smith",
-    "address": "456 Oak Ave, Berlin, Germany",
-    "account": {
-      "accountNumber": "9876543210",
-      "bankCode": "BANK002",
-      "swiftCode": "SWIFT123"
-    }
-  },
-  "sourceCurrency": "USD",
-  "targetCurrency": "EUR",
-  "sourceCountry": "US",
-  "destinationCountry": "DE",
-  "sourceAmount": 1000.00,
-  "purpose": "Payment for services",
-  "corridor": "US-EU"
-}
+```bash
+curl -X POST http://localhost:8080/api/v1/payments \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Id: admin-123" \
+  -d '{
+    "idempotencyKey": "unique-payment-key-12345",
+    "sender": {
+      "name": "John Doe",
+      "address": "123 Main St, New York, NY 10001",
+      "fundingAccount": {
+        "accountNumber": "1234567890",
+        "bankCode": "BANK001",
+        "routingNumber": "987654321"
+      }
+    },
+    "receiver": {
+      "name": "Jane Smith",
+      "address": "456 Oak Ave, Berlin, Germany",
+      "account": {
+        "accountNumber": "9876543210",
+        "bankCode": "BANK002",
+        "swiftCode": "SWIFT123"
+      }
+    },
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "sourceCountry": "US",
+    "destinationCountry": "DE",
+    "sourceAmount": 1000.00,
+    "purpose": "Payment for services",
+    "corridor": "US-EU"
+  }'
 ```
 
 **Response:**
@@ -431,16 +402,17 @@ X-Admin-Id: admin-123
 ### 4. Validate Payment (Approve)
 
 **Request:**
-```http
-PATCH /api/v1/payments/{id}/validate
-Content-Type: application/json
-X-Admin-Id: admin-123
-
-{
-  "status": "APPROVED",
-  "note": "Reviewed and validated by admin"
-}
+```bash
+curl -X PATCH http://localhost:8080/api/v1/payments/{id}/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Id: admin-123" \
+  -d '{
+    "status": "APPROVED",
+    "note": "Reviewed and validated by admin"
+  }'
 ```
+
+**Note:** Replace `{id}` with the actual payment ID.
 
 **Response:**
 ```json
@@ -459,9 +431,11 @@ X-Admin-Id: admin-123
 ### 5. Get Payment by ID (with Status History)
 
 **Request:**
-```http
-GET /api/v1/payments/{id}
+```bash
+curl http://localhost:8080/api/v1/payments/{id}
 ```
+
+**Note:** Replace `{id}` with the actual payment ID.
 
 **Response:**
 ```json
@@ -495,8 +469,8 @@ GET /api/v1/payments/{id}
 ### 6. Get All Payments (with filters)
 
 **Request:**
-```http
-GET /api/v1/payments?status=PENDING_ADMIN_REVIEW&page=0&size=20
+```bash
+curl "http://localhost:8080/api/v1/payments?status=PENDING_ADMIN_REVIEW&page=0&size=20"
 ```
 
 **Response:**
@@ -609,7 +583,7 @@ The project includes comprehensive unit tests covering:
 ### Data Encryption
 
 - Account numbers and routing numbers are encrypted using AES-256
-- Only last 4 digits are stored (encrypted)
+- Sensitive are stored in encrypted form
 - When retrieved, data is decrypted and masked as `****1234`
 - Encryption key is configured via `app.encryption.secret`
 
