@@ -178,7 +178,7 @@ payment-service/
 
 6. **Verify the application is running**
    - **Health Check**: http://localhost:8080/health
-   - **Swagger UI**: http://localhost:8080/swagger-ui.html
+   - **Swagger UI**: http://localhost:8080/swagger-ui/index.html
    - **API Docs**: http://localhost:8080/api-docs
 
 ### Useful Docker Compose Commands
@@ -214,7 +214,7 @@ docker compose restart payment-service
          │
          ▼
 ┌─────────────────────────────────┐
-│      Payment Service API         │
+│      Payment Service API        │
 │  (Spring Boot REST Controller)  │
 └────────┬────────────────────────┘
          │
@@ -228,8 +228,8 @@ docker compose restart payment-service
        │                 │                 │
        ▼                 ▼                 ▼
 ┌─────────────────────────────────────────────┐
-│            MongoDB Database                  │
-│  - payments collection                       │
+│            MongoDB Database                 │
+│  - payments collection                      │
 │  - exchange_configs collection              │
 └─────────────────────────────────────────────┘
 ```
@@ -262,12 +262,16 @@ docker compose restart payment-service
 
 Once the application is running, access the API documentation:
 
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
 - **OpenAPI JSON**: http://localhost:8080/api-docs
 
-## Sample Requests/Responses
+## API Endpoints
 
-### 1. Health Check
+### Health Check
+
+#### GET /health
+
+Check if the service is running.
 
 **Request:**
 ```bash
@@ -286,7 +290,13 @@ curl http://localhost:8080/health
 }
 ```
 
-### 2. Create Exchange Configuration
+---
+
+### Exchange Configuration Endpoints
+
+#### POST /api/v1/exchange-configs
+
+Create a new exchange rate and fee configuration.
 
 **Request:**
 ```bash
@@ -303,12 +313,12 @@ curl -X POST http://localhost:8080/api/v1/exchange-configs \
   }'
 ```
 
-**Response:**
+**Response (201 Created):**
 ```json
 {
   "success": true,
   "data": {
-    "id": "config-123",
+    "id": "67890abcdef1234567890123",
     "sourceCurrency": "USD",
     "targetCurrency": "EUR",
     "minAmount": 100.00,
@@ -323,7 +333,138 @@ curl -X POST http://localhost:8080/api/v1/exchange-configs \
 }
 ```
 
-### 3. Create Payment
+#### GET /api/v1/exchange-configs
+
+Get all exchange configurations.
+
+**Request:**
+```bash
+curl http://localhost:8080/api/v1/exchange-configs
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "67890abcdef1234567890123",
+      "sourceCurrency": "USD",
+      "targetCurrency": "EUR",
+      "minAmount": 100.00,
+      "maxAmount": 100000.00,
+      "fxRate": 0.95,
+      "feeFlat": 10.00,
+      "feePercent": 0.04,
+      "createdAt": "2025-01-21T12:00:00",
+      "updatedAt": "2025-01-21T12:00:00"
+    },
+    {
+      "id": "67890abcdef1234567890124",
+      "sourceCurrency": "GBP",
+      "targetCurrency": "USD",
+      "minAmount": 50.00,
+      "maxAmount": 50000.00,
+      "fxRate": 1.25,
+      "feeFlat": 5.00,
+      "feePercent": 0.03,
+      "createdAt": "2025-01-21T11:00:00",
+      "updatedAt": "2025-01-21T11:00:00"
+    }
+  ],
+  "timestamp": "2025-01-21T12:00:00"
+}
+```
+
+#### GET /api/v1/exchange-configs/{id}
+
+Get a specific exchange configuration by ID.
+
+**Request:**
+```bash
+curl http://localhost:8080/api/v1/exchange-configs/67890abcdef1234567890123
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "67890abcdef1234567890123",
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "minAmount": 100.00,
+    "maxAmount": 100000.00,
+    "fxRate": 0.95,
+    "feeFlat": 10.00,
+    "feePercent": 0.04,
+    "createdAt": "2025-01-21T12:00:00",
+    "updatedAt": "2025-01-21T12:00:00"
+  },
+  "timestamp": "2025-01-21T12:00:00"
+}
+```
+
+#### PUT /api/v1/exchange-configs/{id}
+
+Update an existing exchange configuration.
+
+**Request:**
+```bash
+curl -X PUT http://localhost:8080/api/v1/exchange-configs/67890abcdef1234567890123 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "minAmount": 100.00,
+    "maxAmount": 100000.00,
+    "fxRate": 0.96,
+    "feeFlat": 12.00,
+    "feePercent": 0.05
+  }'
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "67890abcdef1234567890123",
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "minAmount": 100.00,
+    "maxAmount": 100000.00,
+    "fxRate": 0.96,
+    "feeFlat": 12.00,
+    "feePercent": 0.05,
+    "createdAt": "2025-01-21T12:00:00",
+    "updatedAt": "2025-01-21T12:30:00"
+  },
+  "timestamp": "2025-01-21T12:30:00"
+}
+```
+
+#### DELETE /api/v1/exchange-configs/{id}
+
+Delete an exchange configuration (soft delete).
+
+**Request:**
+```bash
+curl -X DELETE http://localhost:8080/api/v1/exchange-configs/67890abcdef1234567890123
+```
+
+**Response (204 No Content):**
+```
+(No response body)
+```
+
+---
+
+### Payment Endpoints
+
+#### POST /api/v1/payments
+
+Create a new payment request. The system will automatically verify, calculate exchange rates, and apply fees.
 
 **Request:**
 ```bash
@@ -360,17 +501,17 @@ curl -X POST http://localhost:8080/api/v1/payments \
   }'
 ```
 
-**Response:**
+**Response (201 Created):**
 ```json
 {
   "success": true,
   "data": {
-    "id": "payment-123",
-    "referenceNumber": "TXN-AbCdEf12",
+    "id": "507f1f77bcf86cd799439011",
+    "referenceNumber": "TXN-AbCdEf12GhIj",
     "sender": {
       "name": "John Doe",
       "address": "123 Main St, New York, NY 10001",
-      "referenceNumber": "SND-XyZ789",
+      "referenceNumber": "SND-XyZ789AbC",
       "fundingAccount": {
         "accountNumber": "****7890",
         "routingNumber": "****4321",
@@ -380,7 +521,7 @@ curl -X POST http://localhost:8080/api/v1/payments \
     "receiver": {
       "name": "Jane Smith",
       "address": "456 Oak Ave, Berlin, Germany",
-      "referenceNumber": "RCV-AbC123",
+      "referenceNumber": "RCV-AbC123XyZ",
       "account": {
         "accountNumber": "****3210",
         "bankCode": "BANK002",
@@ -389,62 +530,218 @@ curl -X POST http://localhost:8080/api/v1/payments \
     },
     "sourceCurrency": "USD",
     "targetCurrency": "EUR",
+    "sourceCountry": "US",
+    "destinationCountry": "DE",
     "sourceAmount": 1000.00,
-    "targetAmount": 900.00,
+    "targetAmount": 940.00,
+    "purpose": "Payment for services",
+    "corridor": "US-EU",
     "status": "PENDING_ADMIN_REVIEW",
+    "exchangeRateCalculation": {
+      "exchangeConfigId": "67890abcdef1234567890123",
+      "exchangeRate": 0.95,
+      "sourceCurrency": "USD",
+      "targetCurrency": "EUR",
+      "appliedAt": "2025-01-21T12:00:00"
+    },
+    "feeCalculation": {
+      "feeFlat": 10.00,
+      "feePercent": 0.04,
+      "flatFeeAmount": 10.00,
+      "percentFeeAmount": 40.00,
+      "totalFee": 50.00,
+      "calculatedAt": "2025-01-21T12:00:00"
+    },
+    "createdBy": "admin-123",
+    "validatedBy": null,
     "systemVerified": false,
-    "createdAt": "2025-01-21T12:00:00"
+    "createdAt": "2025-01-21T12:00:00",
+    "validatedAt": null,
+    "estimatedDeliveryDate": "2025-01-23T12:00:00",
+    "updatedAt": "2025-01-21T12:00:00"
   },
   "timestamp": "2025-01-21T12:00:00"
 }
 ```
 
-### 4. Validate Payment (Approve)
+#### GET /api/v1/payments
+
+Get all payments with optional filters (status, date range, sender reference) and pagination.
 
 **Request:**
 ```bash
-curl -X PATCH http://localhost:8080/api/v1/payments/{id}/validate \
-  -H "Content-Type: application/json" \
-  -H "X-Admin-Id: admin-123" \
-  -d '{
-    "status": "APPROVED",
-    "note": "Reviewed and validated by admin"
-  }'
+# Get all payments
+curl "http://localhost:8080/api/v1/payments?page=0&size=20"
+
+# Filter by status
+curl "http://localhost:8080/api/v1/payments?status=PENDING_ADMIN_REVIEW&page=0&size=20"
+
+# Filter by date range
+curl "http://localhost:8080/api/v1/payments?dateFrom=2025-01-01T00:00:00&dateTo=2025-01-31T23:59:59&page=0&size=20"
+
+# Filter by sender reference
+curl "http://localhost:8080/api/v1/payments?senderReference=SND-XyZ789AbC&page=0&size=20"
+
+# Combined filters
+curl "http://localhost:8080/api/v1/payments?status=PENDING_ADMIN_REVIEW&dateFrom=2025-01-01T00:00:00&dateTo=2025-01-31T23:59:59&senderReference=SND-XyZ789AbC&page=0&size=20"
 ```
 
-**Note:** Replace `{id}` with the actual payment ID.
-
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "success": true,
   "data": {
-    "id": "payment-123",
-    "status": "APPROVED",
-    "validatedBy": "admin-123",
-    "updatedAt": "2025-01-21T12:05:00"
+    "content": [
+      {
+        "id": "507f1f77bcf86cd799439011",
+        "referenceNumber": "TXN-AbCdEf12GhIj",
+        "sender": {
+          "name": "John Doe",
+          "address": "123 Main St, New York, NY 10001",
+          "referenceNumber": "SND-XyZ789AbC",
+          "fundingAccount": {
+            "accountNumber": "****7890",
+            "routingNumber": "****4321",
+            "bankCode": "BANK001"
+          }
+        },
+        "receiver": {
+          "name": "Jane Smith",
+          "address": "456 Oak Ave, Berlin, Germany",
+          "referenceNumber": "RCV-AbC123XyZ",
+          "account": {
+            "accountNumber": "****3210",
+            "bankCode": "BANK002",
+            "swiftCode": "SWIFT123"
+          }
+        },
+        "sourceCurrency": "USD",
+        "targetCurrency": "EUR",
+        "sourceCountry": "US",
+        "destinationCountry": "DE",
+        "sourceAmount": 1000.00,
+        "targetAmount": 940.00,
+        "purpose": "Payment for services",
+        "corridor": "US-EU",
+        "status": "PENDING_ADMIN_REVIEW",
+        "exchangeRateCalculation": {
+          "exchangeConfigId": "67890abcdef1234567890123",
+          "exchangeRate": 0.95,
+          "sourceCurrency": "USD",
+          "targetCurrency": "EUR",
+          "appliedAt": "2025-01-21T12:00:00"
+        },
+        "feeCalculation": {
+          "feeFlat": 10.00,
+          "feePercent": 0.04,
+          "flatFeeAmount": 10.00,
+          "percentFeeAmount": 40.00,
+          "totalFee": 50.00,
+          "calculatedAt": "2025-01-21T12:00:00"
+        },
+        "createdBy": "admin-123",
+        "validatedBy": null,
+        "systemVerified": false,
+        "createdAt": "2025-01-21T12:00:00",
+        "validatedAt": null,
+        "estimatedDeliveryDate": "2025-01-23T12:00:00",
+        "updatedAt": "2025-01-21T12:00:00"
+      }
+    ],
+    "pageable": {
+      "pageNumber": 0,
+      "pageSize": 20,
+      "sort": {
+        "empty": true,
+        "sorted": false,
+        "unsorted": true
+      }
+    },
+    "totalElements": 1,
+    "totalPages": 1,
+    "last": true,
+    "size": 20,
+    "number": 0,
+    "sort": {
+      "empty": true,
+      "sorted": false,
+      "unsorted": true
+    },
+    "first": true,
+    "numberOfElements": 1,
+    "empty": false
   },
-  "timestamp": "2025-01-21T12:05:00"
+  "timestamp": "2025-01-21T12:00:00"
 }
 ```
 
-### 5. Get Payment by ID (with Status History)
+#### GET /api/v1/payments/{id}
+
+Get a specific payment by ID with full details including status history.
 
 **Request:**
 ```bash
-curl http://localhost:8080/api/v1/payments/{id}
+curl http://localhost:8080/api/v1/payments/507f1f77bcf86cd799439011
 ```
 
-**Note:** Replace `{id}` with the actual payment ID.
-
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "success": true,
   "data": {
-    "id": "payment-123",
-    "referenceNumber": "TXN-AbCdEf12",
+    "id": "507f1f77bcf86cd799439011",
+    "referenceNumber": "TXN-AbCdEf12GhIj",
+    "sender": {
+      "name": "John Doe",
+      "address": "123 Main St, New York, NY 10001",
+      "referenceNumber": "SND-XyZ789AbC",
+      "fundingAccount": {
+        "accountNumber": "****7890",
+        "routingNumber": "****4321",
+        "bankCode": "BANK001"
+      }
+    },
+    "receiver": {
+      "name": "Jane Smith",
+      "address": "456 Oak Ave, Berlin, Germany",
+      "referenceNumber": "RCV-AbC123XyZ",
+      "account": {
+        "accountNumber": "****3210",
+        "bankCode": "BANK002",
+        "swiftCode": "SWIFT123"
+      }
+    },
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "sourceCountry": "US",
+    "destinationCountry": "DE",
+    "sourceAmount": 1000.00,
+    "targetAmount": 940.00,
+    "purpose": "Payment for services",
+    "corridor": "US-EU",
     "status": "APPROVED",
+    "exchangeRateCalculation": {
+      "exchangeConfigId": "67890abcdef1234567890123",
+      "exchangeRate": 0.95,
+      "sourceCurrency": "USD",
+      "targetCurrency": "EUR",
+      "appliedAt": "2025-01-21T12:00:00"
+    },
+    "feeCalculation": {
+      "feeFlat": 10.00,
+      "feePercent": 0.04,
+      "flatFeeAmount": 10.00,
+      "percentFeeAmount": 40.00,
+      "totalFee": 50.00,
+      "calculatedAt": "2025-01-21T12:00:00"
+    },
+    "createdBy": "admin-123",
+    "validatedBy": "admin-123",
+    "systemVerified": true,
+    "createdAt": "2025-01-21T12:00:00",
+    "validatedAt": "2025-01-21T12:05:00",
+    "estimatedDeliveryDate": "2025-01-23T12:00:00",
+    "updatedAt": "2025-01-21T12:05:00",
     "statusHistory": [
       {
         "status": "PENDING_ADMIN_REVIEW",
@@ -466,33 +763,100 @@ curl http://localhost:8080/api/v1/payments/{id}
 }
 ```
 
-### 6. Get All Payments (with filters)
+#### PATCH /api/v1/payments/{id}/validate
+
+Update payment status (approve, reject, etc.). Requires system verification to be completed first.
 
 **Request:**
 ```bash
-curl "http://localhost:8080/api/v1/payments?status=PENDING_ADMIN_REVIEW&page=0&size=20"
+# Approve payment
+curl -X PATCH http://localhost:8080/api/v1/payments/507f1f77bcf86cd799439011/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Id: admin-123" \
+  -d '{
+    "status": "APPROVED",
+    "note": "Reviewed and validated by admin"
+  }'
+
+# Reject payment
+curl -X PATCH http://localhost:8080/api/v1/payments/507f1f77bcf86cd799439011/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Id: admin-123" \
+  -d '{
+    "status": "REJECTED",
+    "note": "Insufficient documentation"
+  }'
+
+# Mark as delivered
+curl -X PATCH http://localhost:8080/api/v1/payments/507f1f77bcf86cd799439011/validate \
+  -H "Content-Type: application/json" \
+  -H "X-Admin-Id: admin-123" \
+  -d '{
+    "status": "DELIVERED",
+    "note": "Payment successfully delivered"
+  }'
 ```
 
-**Response:**
+**Response (200 OK):**
 ```json
 {
   "success": true,
   "data": {
-    "content": [
-      {
-        "id": "payment-123",
-        "referenceNumber": "TXN-AbCdEf12",
-        "status": "PENDING_ADMIN_REVIEW",
-        "sourceAmount": 1000.00,
-        "targetAmount": 900.00
+    "id": "507f1f77bcf86cd799439011",
+    "referenceNumber": "TXN-AbCdEf12GhIj",
+    "sender": {
+      "name": "John Doe",
+      "address": "123 Main St, New York, NY 10001",
+      "referenceNumber": "SND-XyZ789AbC",
+      "fundingAccount": {
+        "accountNumber": "****7890",
+        "routingNumber": "****4321",
+        "bankCode": "BANK001"
       }
-    ],
-    "totalElements": 1,
-    "totalPages": 1,
-    "size": 20,
-    "number": 0
+    },
+    "receiver": {
+      "name": "Jane Smith",
+      "address": "456 Oak Ave, Berlin, Germany",
+      "referenceNumber": "RCV-AbC123XyZ",
+      "account": {
+        "accountNumber": "****3210",
+        "bankCode": "BANK002",
+        "swiftCode": "SWIFT123"
+      }
+    },
+    "sourceCurrency": "USD",
+    "targetCurrency": "EUR",
+    "sourceCountry": "US",
+    "destinationCountry": "DE",
+    "sourceAmount": 1000.00,
+    "targetAmount": 940.00,
+    "purpose": "Payment for services",
+    "corridor": "US-EU",
+    "status": "APPROVED",
+    "exchangeRateCalculation": {
+      "exchangeConfigId": "67890abcdef1234567890123",
+      "exchangeRate": 0.95,
+      "sourceCurrency": "USD",
+      "targetCurrency": "EUR",
+      "appliedAt": "2025-01-21T12:00:00"
+    },
+    "feeCalculation": {
+      "feeFlat": 10.00,
+      "feePercent": 0.04,
+      "flatFeeAmount": 10.00,
+      "percentFeeAmount": 40.00,
+      "totalFee": 50.00,
+      "calculatedAt": "2025-01-21T12:00:00"
+    },
+    "createdBy": "admin-123",
+    "validatedBy": "admin-123",
+    "systemVerified": true,
+    "createdAt": "2025-01-21T12:00:00",
+    "validatedAt": "2025-01-21T12:05:00",
+    "estimatedDeliveryDate": "2025-01-23T12:00:00",
+    "updatedAt": "2025-01-21T12:05:00"
   },
-  "timestamp": "2025-01-21T12:00:00"
+  "timestamp": "2025-01-21T12:05:00"
 }
 ```
 
